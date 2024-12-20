@@ -1,20 +1,24 @@
-<?php 
-include("usuarioPublico_Header.php"); 
+<?php
+include("usuarioPublico_Header.php");
+//require_once 'Servidor/Conexion.php'; // Incluye la conexión a la base de datos
 
 // Capturar el ID del tipo de departamento desde la URL
-$idTipoDepartamento = isset($_GET['id_tipos_departamentos']) ? $_GET['id_tipos_departamentos'] : null;
+$idTipoDepartamento = isset($_GET['id_tipos_departamentos']) ? intval($_GET['id_tipos_departamentos']) : null;
 
-// Mapa de tipos de incidencia y campos específicos
-$incidencias = [
-    1 => ['titulo' => 'Sistemas', 'campos' => ['Equipo Afectado', 'Descripción del Problema']],
-    2 => ['titulo' => 'Recursos Humanos', 'campos' => ['Nombre del Empleado', 'Asunto']],
-    3 => ['titulo' => 'Tráfico', 'campos' => ['Vehículo', 'Detalle del Incidente']],
-    4 => ['titulo' => 'Mantenimiento', 'campos' => ['Área Afectada', 'Detalles']],
-    5 => ['titulo' => 'Otro', 'campos' => ['Descripción General']],
-];
+// Establecer conexión a la base de datos
+$conexion = (new Conexion())->Cone();
 
-// Determinar si el tipo de incidencia es válido
-$tipoIncidencia = $incidencias[$idTipoDepartamento] ?? ['titulo' => 'General', 'campos' => ['Descripción']];
+// Obtener campos personalizados del departamento
+$query = "SELECT nombre, tipo, opciones, obligatorio 
+          FROM campos_personalizados_departamentos 
+          JOIN campos_personalizados 
+          ON campos_personalizados_departamentos.id_campo_personalizado = campos_personalizados.id
+          WHERE id_tipos_departamentos = :id OR id_tipos_departamentos IS NULL";
+
+$stmt = $conexion->prepare($query);
+$stmt->bindParam(':id', $idTipoDepartamento, PDO::PARAM_INT);
+$stmt->execute();
+$campos = $stmt->fetchAll();
 
 ?>
 
@@ -22,46 +26,48 @@ $tipoIncidencia = $incidencias[$idTipoDepartamento] ?? ['titulo' => 'General', '
   <main>
     <div class="py-5 text-center">
       <h2>Crear Nuevo Ticket</h2>
-      <p class="lead">Formulario de reporte para el departamento de <strong><?php echo htmlspecialchars($tipoIncidencia['titulo']); ?></strong></p>
+      <p class="lead">Formulario de reporte para el departamento seleccionado.</p>
     </div>
 
     <div class="col-md-8 mx-auto">
       <h4 class="mb-3">Detalles del Ticket</h4>
       <form class="needs-validation" method="POST" action="procesar_ticket.php" novalidate>
-        <!-- Campo Nombre -->
-        <div class="mb-3">
-          <label for="nombre" class="form-label">Nombre</label>
-          <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Tu nombre" required>
-          <div class="invalid-feedback">Tu nombre es requerido.</div>
-        </div>
-
-        <!-- Campo Email -->
-        <div class="mb-3">
-          <label for="email" class="form-label">Email</label>
-          <input type="email" class="form-control" id="email" name="email" placeholder="you@example.com" required>
-          <div class="invalid-feedback">Por favor, ingresa un correo válido.</div>
-        </div>
-
-        <!-- Prioridad -->
-        <div class="mb-3">
-          <label for="prioridad" class="form-label">Prioridad</label>
-          <select class="form-select" id="prioridad" name="prioridad" required>
-            <option value="">Selecciona...</option>
-            <option value="Alta">Alta</option>
-            <option value="Media">Media</option>
-            <option value="Baja">Baja</option>
-          </select>
-          <div class="invalid-feedback">Por favor, selecciona una prioridad.</div>
-        </div>
-
-        <!-- Campos Dinámicos -->
-        <?php foreach ($tipoIncidencia['campos'] as $campo): ?>
-          <div class="mb-3">
-            <label class="form-label"><?php echo htmlspecialchars($campo); ?></label>
-            <input type="text" class="form-control" name="<?php echo strtolower(str_replace(' ', '_', $campo)); ?>" placeholder="<?php echo $campo; ?>" required>
-            <div class="invalid-feedback">Por favor, completa este campo.</div>
-          </div>
-        <?php endforeach; ?>
+        <!-- Renderizar campos personalizados -->
+        <?php if (!empty($campos)): ?>
+          <?php foreach ($campos as $campo): ?>
+            <div class="mb-3">
+              <label class="form-label"><?php echo htmlspecialchars($campo['nombre']); ?></label>
+              <?php if ($campo['tipo'] === 'Botón de opción'): ?>
+                <!-- Botones de opción -->
+                <?php $opciones = json_decode($campo['opciones'], true); ?>
+                <?php foreach ($opciones as $opcion): ?>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="<?php echo strtolower(str_replace(' ', '_', $campo['nombre'])); ?>" value="<?php echo htmlspecialchars($opcion); ?>" required>
+                    <label class="form-check-label"><?php echo htmlspecialchars($opcion); ?></label>
+                  </div>
+                <?php endforeach; ?>
+              <?php elseif ($campo['tipo'] === 'Caja de selección'): ?>
+                <!-- Caja de selección -->
+                <?php $opciones = json_decode($campo['opciones'], true); ?>
+                <select class="form-select" name="<?php echo strtolower(str_replace(' ', '_', $campo['nombre'])); ?>" required>
+                  <option value="">Selecciona...</option>
+                  <?php foreach ($opciones as $opcion): ?>
+                    <option value="<?php echo htmlspecialchars($opcion); ?>"><?php echo htmlspecialchars($opcion); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              <?php elseif ($campo['tipo'] === 'Fecha'): ?>
+                <!-- Campo de Fecha -->
+                <input type="date" class="form-control" name="<?php echo strtolower(str_replace(' ', '_', $campo['nombre'])); ?>" required>
+              <?php else: ?>
+                <!-- Campos de texto genéricos -->
+                <input type="text" class="form-control" name="<?php echo strtolower(str_replace(' ', '_', $campo['nombre'])); ?>" placeholder="<?php echo htmlspecialchars($campo['nombre']); ?>" required>
+              <?php endif; ?>
+              <div class="invalid-feedback">Por favor, completa este campo.</div>
+            </div>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <p>No hay campos personalizados disponibles para este departamento.</p>
+        <?php endif; ?>
 
         <!-- Botón Enviar -->
         <hr class="my-4">
