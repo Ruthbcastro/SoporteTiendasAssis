@@ -9,6 +9,7 @@ $idTipoDepartamento = isset($_GET['id_tipos_departamentos']) ? intval($_GET['id_
 $conexion = (new Conexion())->Cone();
 
 // Obtener campos personalizados del departamento
+//hola
 $query = "SELECT nombre, tipo, opciones, obligatorio 
           FROM campos_personalizados_departamentos 
           JOIN campos_personalizados 
