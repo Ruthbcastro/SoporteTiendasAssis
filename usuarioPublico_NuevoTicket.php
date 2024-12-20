@@ -6,8 +6,6 @@ $Valores = $Datos->Departamentos();
 
 ?>
 
-
-
 <div class="container-fluid">
 
 
