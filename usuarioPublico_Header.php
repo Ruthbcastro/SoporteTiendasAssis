@@ -2,7 +2,7 @@
 require_once('Servidor/Conexion.php');
 
 $Datos = new Conexion();
-$Valores = $Datos->Users();
+    $Valores = $Datos->Users();
 
 ?>
 <!DOCTYPE html>
