@@ -1,9 +1,10 @@
 <?php
 require_once('Servidor/Conexion.php');
 
-$Datos = new Conexion();
+    $Datos = new Conexion();
     $Valores = $Datos->Users();
 
+    
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -379,6 +380,8 @@ $Datos = new Conexion();
                     </ul>
 
                 </nav>
+
+                
                 <!-- End of Topbar -->
 
                 <!-- Begin Page Content -->

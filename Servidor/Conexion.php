@@ -33,7 +33,7 @@ class Conexion {
             die("Error al conectar con la base de datos.");
         }
 
-        $sql = "SELECT * FROM usuarios ";
+        $sql = "SELECT * FROM usuarios WHERE id_Usuario = 2";
         
         try {
             $stmt = $conexion->query($sql);
